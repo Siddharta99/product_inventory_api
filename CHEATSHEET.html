@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>The Engineer's Field Manual</title>
+<style>
+  :root{
+    --ink:#1f2430; --paper:#ffffff; --bg:#eef1f6;
+    --indigo:#3b3f8c; --teal:#0f766e; --rose:#be123c;
+    --amber:#b45309; --slate:#475569; --line:#d7dce6;
+    --code-bg:#f4f6fa;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    line-height:1.55; font-size:14px;
+  }
+  .sheet{max-width:880px; margin:24px auto; background:var(--paper);
+    padding:42px 48px; border-radius:14px; box-shadow:0 8px 30px rgba(20,30,60,.12);}
+  header.cover{border-bottom:3px solid var(--indigo); padding-bottom:18px; margin-bottom:8px;}
+  header.cover h1{margin:0; font-size:30px; color:var(--indigo); letter-spacing:.3px;}
+  header.cover .sub{color:var(--slate); font-size:15px; margin-top:6px;}
+  header.cover .meta{margin-top:14px; font-size:12.5px; color:var(--slate);}
+  header.cover .meta b{color:var(--ink);}
+  h2{font-size:19px; color:var(--indigo); margin:30px 0 10px;
+     border-left:5px solid var(--indigo); padding-left:12px;}
+  h3{font-size:15px; color:var(--teal); margin:18px 0 6px;}
+  p{margin:8px 0;}
+  code,pre{font-family:"Consolas","Cascadia Mono",Menlo,monospace;}
+  code{background:var(--code-bg); padding:1px 5px; border-radius:4px; font-size:12.5px;
+       border:1px solid var(--line);}
+  pre{background:var(--code-bg); border:1px solid var(--line); border-left:4px solid var(--slate);
+      border-radius:8px; padding:12px 14px; overflow-x:auto; font-size:12.5px; margin:10px 0;}
+  pre code{background:none; border:none; padding:0;}
+  table{width:100%; border-collapse:collapse; margin:12px 0; font-size:13px;
+        page-break-inside:avoid;}
+  th,td{border:1px solid var(--line); padding:7px 10px; text-align:left; vertical-align:top;}
+  th{background:var(--indigo); color:#fff; font-weight:600;}
+  tbody tr:nth-child(even){background:#f7f9fc;}
+  td code{white-space:nowrap;}
+  .ok{color:var(--teal); font-weight:700;}
+  .bad{color:var(--rose); font-weight:700;}
+  .card{border:1px solid var(--line); border-radius:10px; padding:4px 16px 14px;
+        margin:14px 0; page-break-inside:avoid;}
+  .tip,.warn,.key{border-radius:8px; padding:10px 14px; margin:12px 0; font-size:13px;
+        page-break-inside:avoid;}
+  .tip {background:#ecfdf5; border-left:5px solid var(--teal);}
+  .warn{background:#fff1f2; border-left:5px solid var(--rose);}
+  .key {background:#fffbeb; border-left:5px solid var(--amber);}
+  .tip b,.warn b,.key b{display:inline-block; margin-right:4px;}
+  .diagram{background:#0f172a; color:#e2e8f0; border-left:4px solid var(--indigo);
+        border-radius:8px; padding:14px 16px; font-size:12.5px; overflow-x:auto;
+        page-break-inside:avoid;}
+  .diagram code{background:none;border:none;color:inherit;padding:0;}
+  ul{margin:8px 0 8px 4px; padding-left:18px;}
+  li{margin:4px 0;}
+  .rules{counter-reset:r; list-style:none; padding-left:0;}
+  .rules li{counter-increment:r; position:relative; padding:8px 12px 8px 46px;
+        background:#fffbeb; border:1px solid #fde68a; border-radius:8px; margin:7px 0;
+        page-break-inside:avoid;}
+  .rules li::before{content:counter(r); position:absolute; left:10px; top:50%;
+        transform:translateY(-50%); width:24px; height:24px; border-radius:50%;
+        background:var(--amber); color:#fff; font-weight:700; font-size:13px;
+        display:flex; align-items:center; justify-content:center;}
+  .newpage{page-break-before:always;}
+  footer{margin-top:34px; padding-top:14px; border-top:2px solid var(--line);
+        color:var(--slate); font-size:12px; text-align:center;}
+  @media print{
+    body{background:#fff;}
+    .sheet{box-shadow:none; margin:0; max-width:none; border-radius:0; padding:0 6mm;}
+    @page{margin:14mm 12mm;}
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+<header class="cover">
+  <h1>⚙️ The Engineer's Field Manual</h1>
+  <div class="sub">FastAPI · SQLite · SQLModel · Git — built from real battles, not textbooks.</div>
+  <div class="meta">Owner: <b>Siddharta99</b> &nbsp;•&nbsp; Project: <b>product_inventory_api</b> &nbsp;•&nbsp; Rule of the house: <b>honesty</b></div>
+</header>
+
+<h2>1 · The Mental Model (the receptionist)</h2>
+<p>Your API is a receptionist behind a phone line. The client calls; the receptionist consults the filing cabinet (database); the receptionist answers.</p>
+<div class="diagram"><code>Client (browser / curl)  ──request──►  SERVER (FastAPI)  ──query──►  DATABASE (SQLite file)
+Client  ◄──response──   SERVER   ◄──rows──   DATABASE</code></div>
+<ul>
+  <li><b>Server</b> = a program listening on a port (9000). Starts with <code>uvicorn</code>, dies when you close it.</li>
+  <li><b>Endpoint</b> = one page in the rulebook = one <code>@app.xxx</code> function.</li>
+  <li><b>Request</b> = method + URL + optional body. &nbsp; <b>Response</b> = status code + body.</li>
+</ul>
+<div class="tip"><b>💡</b> The database file is <i>innocent</i>. It only stores truth. Lies live in the translation layer (your code). Most bugs are translators, not data.</div>
+
+<h2>2 · HTTP Methods &amp; Status Codes (the honesty ladder)</h2>
+<table>
+<thead><tr><th>Method</th><th>Verb</th><th>What it does</th><th>Idempotent?</th></tr></thead>
+<tbody>
+<tr><td><code>GET</code></td><td>read</td><td>fetch data, change nothing</td><td>yes</td></tr>
+<tr><td><code>POST</code></td><td>create</td><td>add a new row</td><td>no</td></tr>
+<tr><td><code>PUT</code></td><td>update</td><td>replace an existing row</td><td>yes</td></tr>
+<tr><td><code>DELETE</code></td><td>destroy</td><td>remove a row</td><td>yes</td></tr>
+</tbody></table>
+<table>
+<thead><tr><th>Code</th><th>Meaning</th><th>When you saw it</th></tr></thead>
+<tbody>
+<tr><td class="ok">200</td><td>OK — job done honestly</td><td>every successful CRUD</td></tr>
+<tr><td>404</td><td>Not Found — “no such house”</td><td><code>PUT/DELETE</code> an id that doesn’t exist (your <code>rowcount==0</code> check)</td></tr>
+<tr><td>422</td><td>Unprocessable — “your form is broken”</td><td>Pydantic / SQLModel rejected the body <i>before</i> it ran</td></tr>
+<tr><td class="bad">500</td><td>Server exploded — <i>your</i> bug</td><td><code>ModuleNotFoundError</code>, <code>SyntaxError</code></td></tr>
+</tbody></table>
+<div class="key"><b>🔑</b> <b>200</b> = the operation succeeded. <b>4xx</b> = the <i>client</i> was wrong. <b>5xx</b> = the <i>server</i> is wrong. Read the first digit and you know who to blame.</div>
+
+<h2>3 · Types Are Law (the quote-ghost cure)</h2>
+<p>In Week 1 the ghost <code>"row[2]"</code> slipped through because <i>nothing knew</i> price was a number. Now the class declares it, and the type system enforces it <b>on the way in, in storage, and on the way out.</b></p>
+<pre><code>class Product(SQLModel, table=True):     # the LAW
+    __tablename__ = "products"           # tell the ORM the table's TRUE name
+    id:    int | None = Field(default=None, primary_key=True)
+    name:  str                            # text required
+    price: int                            # NUMBER required — quotes forbidden</code></pre>
+<table>
+<thead><tr><th>You send</th><th>What happens</th></tr></thead>
+<tbody>
+<tr><td><code>{"name":"Mouse","price":500}</code></td><td class="ok">✅ 200, stored as integer</td></tr>
+<tr><td><code>{"name":"Mouse","price":"500"}</code></td><td class="bad">🛡️ 422 — shield blocks the quoted string</td></tr>
+</tbody></table>
+<div class="tip"><b>⚕️</b> You didn’t patch the hole; you removed the ground it stood on. The Week-1 bug is now <i>physically impossible</i> to write.</div>
+
+<h2>4 · Raw SQL vs ORM (the Week-2 transplant)</h2>
+<p>Same job, two dialects. The ORM writes the SQL <i>for</i> you — so typos like <code>DELETE products</code> (missing <code>FROM</code>) can’t exist anymore.</p>
+<table>
+<thead><tr><th>Job</th><th>OLD (raw SQL you typed)</th><th>NEW (ORM objects)</th></tr></thead>
+<tbody>
+<tr><td>read all</td><td><code>cursor.execute("SELECT * FROM products")</code> + loop <code>row[0],row[1]</code></td><td><code>session.exec(select(Product)).all()</code></td></tr>
+<tr><td>create</td><td><code>INSERT INTO ... VALUES (?,?)</code> + <code>lastrowid</code></td><td><code>session.add(obj); session.commit(); session.refresh(obj)</code></td></tr>
+<tr><td>find one</td><td><code>SELECT ... WHERE id=?</code> + manual unpack</td><td><code>session.get(Product, product_id)</code></td></tr>
+<tr><td>update</td><td><code>UPDATE ... SET name=?,price=? WHERE id=?</code></td><td><code>db.name = new; db.price = new; commit</code></td></tr>
+<tr><td>delete</td><td><code>DELETE FROM ... WHERE id=?</code> + <code>rowcount</code></td><td><code>obj = session.get(...); session.delete(obj); commit</code></td></tr>
+<tr><td>honest 404</td><td><code>if cursor.rowcount == 0: raise 404</code></td><td><code>if not obj: raise 404</code></td></tr>
+</tbody></table>
+<pre><code># the whole "list" endpoint, before vs after:
+# BEFORE: 8 lines of cursor / loop / dict-building
+# AFTER:
+@app.get("/products")
+def list_products():
+    with Session(engine) as session:
+        return session.exec(select(Product)).all()   # done.</code></pre>
+<div class="tip"><b>🚪</b> <code>with Session(...) as session:</code> = the ORM’s auto-closing door. No more forgotten <code>conn.close()</code>. The file shrank ~half; a whole <i>category</i> of bugs died with it.</div>
+
+<h2>5 · SQL Sentences You Must Memorize (the grammar)</h2>
+<pre><code>SELECT * FROM products WHERE id = 1;                          -- read
+INSERT INTO products (name, price) VALUES ('Mouse', 500);     -- create
+UPDATE products SET name='X', price=9 WHERE id=1;             -- update
+DELETE FROM products WHERE id = 1;            -- destroy  (FROM is NOT optional!)</code></pre>
+<h3>The comma landmine</h3>
+<pre><code>cursor.execute(sql, (product_id))     # ❌ (5) is just the int 5
+cursor.execute(sql, (product_id,))    # ✅ (5,) is a TUPLE — the comma IS the tuple</code></pre>
+<div class="warn"><b>⚠️</b> Parentheses are decoration. <b>The comma makes the tuple.</b> One character, one whole bug class.</div>
+<div class="key"><b>📏</b> <b>rowcount = the honesty meter:</b> after UPDATE/DELETE it tells how many rows actually changed. <code>0</code> ⇒ the id never existed ⇒ raise 404. <i>Never trust “success” without checking the meter.</i></div>
+
+<h2>6 · The Debugging Doctrine (your superpower)</h2>
+<ul>
+  <li><b>Writes claim. Reads prove.</b> After every POST/PUT/DELETE, run GET and <i>look</i>. The server’s “updated!” is a promise; the GET is the evidence.</li>
+  <li><b>Descend the layers when the UI lies:</b> browser → server logs → <code>curl</code> → the file itself. (This is how you caught the twin-database ghost.)</li>
+  <li><b>Read the traceback bottom-up.</b> The <i>last</i> line names the error; the line above names <i>your</i> file and line number. The log is a free teacher that never sleeps.</li>
+  <li><b>Timestamps are security cameras.</b> Compare the response’s <code>date:</code> header to your clock. Old header = you’re reading history, not truth (stale Swagger panel).</li>
+  <li><b>Predict before you run.</b> Say out loud what you expect, <i>then</i> execute. Wrong prediction = the exact spot your mental model needs fixing. The #1 engineer skill.</li>
+  <li><b>Run before review.</b> Test your own code; bring the error + your one fix attempt. Don’t hand over untested code to debug for you.</li>
+</ul>
+
+<h2>7 · Windows / Terminal Survival Kit (the pain you conquered)</h2>
+<table>
+<thead><tr><th>Problem</th><th>The Fix</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td><b>Twin databases</b> 👻</td><td><code>cd</code> into the project folder first</td><td><code>sqlite:///products.db</code> is a <i>relative</i> path → obeys <b>where you stand (cwd)</b>, not where the script lives</td></tr>
+<tr><td><b>Wrong Python</b> (<code>ModuleNotFoundError</code>)</td><td><code>py -3.10 -m pip install sqlmodel</code> &amp; <code>py -3.10 -m uvicorn ...</code></td><td><code>py -3.10</code> pins ONE python; <code>-m</code> pins pip/uvicorn to that same python</td></tr>
+<tr><td><b>PowerShell red error</b></td><td><code>Set-ExecutionPolicy RemoteSigned -Scope CurrentUser</code> → <code>Y</code></td><td>Unlocks script-running (the bouncer at the door)</td></tr>
+<tr><td><code>'y' not recognized</code></td><td>The policy applied <i>silently</i>; no <code>Y</code> was needed</td><td>Not every command asks permission</td></tr>
+<tr><td><b>cmd vs PowerShell</b></td><td>terminal <code>⋮</code> → <i>Select Default Profile</i> → Command Prompt; kill old tab (<code>exit</code>/🗑️), open new (<code>+</code>)</td><td>Default only affects <i>new</i> terminals</td></tr>
+<tr><td><code>cd product_inventory_api</code> fails</td><td>You’re <i>already</i> there — read the prompt!</td><td><code>cd</code> alone = print location; <code>cd ..</code> = go up</td></tr>
+<tr><td><b>Port already in use</b></td><td>Close ALL server windows, relaunch one</td><td>A zombie server holds 9000 → one server, one truth</td></tr>
+</tbody></table>
+<div class="key"><b>🧭</b> The prompt is your compass. <code>F:\Python&gt;</code> = parent (danger zone). <code>F:\Python\product_inventory_api&gt;</code> = home. Look before you type.</div>
+
+<h2>8 · Git Hygiene (ship like a pro)</h2>
+<table>
+<thead><tr><th>Move</th><th>Command</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>snapshot</td><td><code>git add .</code> then <code>git commit -m "msg"</code></td><td>seal the files into history</td></tr>
+<tr><td>publish</td><td><code>git push</code> (or VS Code <b>Publish Branch</b> 🪄)</td><td>send to GitHub</td></tr>
+<tr><td><b>the bouncer</b></td><td><code>.gitignore</code> listing <code>__pycache__/</code>, <code>*.db</code>, <code>tempCodeRunnerFile.py</code></td><td>junk &amp; private data never enter the repo</td></tr>
+<tr><td><b>un-track surgery</b></td><td><code>git rm --cached products.db</code></td><td>forget it in Git, <b>keep it on disk</b> (<code>--cached</code> = memory-only delete)</td></tr>
+<tr><td>good message</td><td><code>"Refactor: migrate API from raw SQL to SQLModel ORM"</code></td><td>tells the <i>why</i>, not just “update”</td></tr>
+</tbody></table>
+<div class="tip"><b>🔒</b> Code is public; <b>data is personal.</b> A <code>.db</code> in your repo leaks your real rows. Commit history is your story: <i>built raw → hardened → migrated to ORM.</i> Reviewers read that progression like a résumé.</div>
+
+<h2>9 · The CRUD Family (your finished monument)</h2>
+<pre><code>GET    /                 →  heartbeat            200
+GET    /products         →  honest reader        200
+POST   /products         →  armored writer       200 / 422 shield
+PUT    /products/{id}    →  verified updater     200 / 404 honest
+DELETE /products/{id}    →  honest destroyer     200 / 404 honest</code></pre>
+<p>Five endpoints. Zero raw SQL. One database. Two public repos. 🏆</p>
+
+<h2 class="newpage">⭐ The Ten Golden Rules (if you remember nothing else)</h2>
+<ol class="rules">
+  <li>The database is innocent; the translator lies.</li>
+  <li>Types are law — declare them and the bug can’t be written.</li>
+  <li>Writes claim; <b>reads prove.</b></li>
+  <li>The comma makes the tuple. <code>(5,)</code></li>
+  <li><code>DELETE <b>FROM</b></code> — grammar is strict.</li>
+  <li>Relative paths obey <b>where you stand</b>, not where the file is.</li>
+  <li>One Python per project (<code>py -3.10 -m ...</code>); venv is the cure (coming next).</li>
+  <li>Read the traceback bottom-up; the log never sleeps.</li>
+  <li>Predict before you run; run before you review.</li>
+  <li>Commit the <i>why</i>, ignore the junk, never track your data.</li>
+</ol>
+
+<footer>Field Manual v1 · generated for Siddharta99 · print with <b>Background graphics</b> ON for full color · next chapter: <b>venv</b> 🚪</footer>
+
+</div>
+</body>
+</html>
