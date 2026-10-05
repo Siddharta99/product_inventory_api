@@ -23,16 +23,16 @@ Products are created, read, updated, and deleted over HTTP, with automatic valid
 
 ## Tech Stack
 
-Python 3.10 · FastAPI · Uvicorn · Pydantic · SQLite
+Python 3.10 · FastAPI · Uvicorn · SQLModel (ORM) · SQLite
 
 ## How to Run
-
-1. Clone this repository
-2. Install dependencies:
-   pip install fastapi uvicorn
-3. Start the server — double-click `start_server.bat` (Windows), or:
-   uvicorn api:app --reload --port 9000
-4. Open the interactive docs: http://127.0.0.1:9000/docs
+1. Clone this repository: `git clone https://github.com/Siddharta99/product_inventory_api.git`
+2. Create and activate a virtual environment:
+   - Windows: `python -m venv venv` then `.\venv\Scripts\activate`
+   - Mac/Linux: `python3 -m venv venv` then `source venv/bin/activate`
+3. Install the exact dependencies from the recipe: `pip install -r requirements.txt`
+4. Start the server: `uvicorn api:app --reload --port 9000`
+5. Open the interactive docs: http://127.0.0.1:9000/docs
 
 ## Example
 
@@ -45,6 +45,7 @@ response:       →  {"message": "Product added!", "id": 1}
 - (5) is an int. (5,) is a tuple. The comma IS the tuple.
 - Two files named products.db in two folders = split-brain confusion. Always verify which database the server actually talks to.
 - When the UI lies, descend the layers: server logs, then curl, then the file itself.
+- **The ORM Translator:** Migrated from raw SQL strings to SQLModel. The database still only speaks SQL, but the ORM translates my Python objects into SQL queries (and back) automatically. Types are now law: sending a string for an integer price triggers a 422 shield before it ever touches the database.
 
 ## Author
 
