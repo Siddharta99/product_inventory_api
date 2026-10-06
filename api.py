@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from sqlmodel import SQLModel, Field, create_engine, Session, select
+import hashlib,secrets
 
 # 1. THE BLUEPRINT (The ORM Model)
 class Product(SQLModel, table=True):
@@ -10,7 +11,7 @@ class Product(SQLModel, table=True):
 
 # 2. THE DATABASE CONNECTION
 engine = create_engine("sqlite:///products.db")
-SQLModel.metadata.create_all(engine) # Creates the table if it doesn't exist
+
 
 # 3. THE API ROUTES
 app = FastAPI()
@@ -60,3 +61,41 @@ def delete_product(product_id: int):
         session.delete(db_product)
         session.commit()
         return {"message": "Product Deleted!", "id": product_id}
+
+class User(SQLModel,table=True):
+    __tablename__ = "users"
+    id:int | None = Field(default=None, primary_key=True)
+    username: str = Field(index=True, unique=True)
+    email: str
+    hashed_password: str
+
+class UserRegister(SQLModel):
+    username:str
+    email:str
+    password: str
+def hash_password(password:str):
+    salt = secrets.token_hex(16)
+    grind = hashlib.pbkdf2_hmac("sha256",password.encode(),salt.encode(),100_000)
+    return salt + ":" + grind.hex()
+
+@app.post("/users")
+def register_user(payload: UserRegister):
+    with Session(engine) as session:
+        existing_user = session.exec(select(User).where(User.username == payload.username)).first()
+
+        if existing_user:
+            raise HTTPException(status_code=409,detail="Username already taken")
+
+        fingerprint = hash_password(payload.password)
+
+        new_user = User(
+            username=payload.username,
+            email=payload.email,
+            hashed_password=fingerprint
+        )
+        session.add(new_user)
+        session.commit()
+        session.refresh(new_user) # Gets the new ID from the database
+        return {"message": "user registered!", "id": new_user.id}
+
+SQLModel.metadata.create_all(engine) # Creates the table if it doesn't exist
