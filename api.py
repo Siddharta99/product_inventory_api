@@ -73,6 +73,18 @@ class UserRegister(SQLModel):
     username:str
     email:str
     password: str
+
+class UserLogin(SQLModel):
+    username:str
+    password:str
+
+@app.post("/login")
+def login(payload: UserLogin):
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.username == payload.username)).first()
+        if not user or not verify_password(payload.password, user.hashed_password):
+            raise HTTPException(status_code=401,detail="wrong username or password")
+        return {"message":"welcome back!","id":user.id}
 def hash_password(password:str):
     salt = secrets.token_hex(16)
     grind = hashlib.pbkdf2_hmac("sha256",password.encode(),salt.encode(),100_000)
@@ -98,4 +110,10 @@ def register_user(payload: UserRegister):
         session.refresh(new_user) # Gets the new ID from the database
         return {"message": "user registered!", "id": new_user.id}
 
+def verify_password(claimed:str,stored:str):
+    salt, old_grind = stored.split(":")
+    new_grind = hashlib.pbkdf2_hmac(
+        "sha256",claimed.encode(),salt.encode(),100_000
+    ).hex()
+    return new_grind == old_grind
 SQLModel.metadata.create_all(engine) # Creates the table if it doesn't exist
