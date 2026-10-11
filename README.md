@@ -1,8 +1,8 @@
 # Product Inventory API
-A small web service that keeps products in a SQLite file and lets clients add, view, change, and delete them over HTTP — now guarded by a full bouncer system: hashed passwords, JWT wristbands, and locked write-doors.
+A small web service that keeps products in a SQLite file and lets clients add, view, change, and delete them over HTTP — now guarded by a full bouncer system: hashed passwords, JWT wristbands, locked write-doors, and per-owner shelves (multi-tenancy).
 
-A complete CRUD REST API for managing a product inventory — built with Python, FastAPI, SQLModel, and SQLite, secured with salted PBKDF2 hashing and JWT authentication.
-Products are created, read, updated, and deleted over HTTP, with automatic validation and honest error codes. Write operations require a valid Bearer wristband.
+A complete CRUD REST API for managing a product inventory — built with Python, FastAPI, SQLModel, and SQLite, secured with salted PBKDF2 hashing, JWT authentication, and ownership checks.
+Products are created, read, updated, and deleted over HTTP, with automatic validation and honest error codes. Write operations require a valid Bearer wristband — and only against products that wristband's owner actually owns.
 
 ## Features
 
@@ -12,8 +12,10 @@ Products are created, read, updated, and deleted over HTTP, with automatic valid
 - Auto-generated interactive documentation at `/docs` (Swagger UI) — with an Authorize button
 - SQLite persistence — one file, zero setup
 - **Secure registration:** passwords are never stored — only per-user salted PBKDF2 fingerprints (100,000 rounds)
-- **JWT authentication:** OAuth2 password flow issues 30-minute wristbands; a scanner checks every write-door
+- **JWT authentication:** OAuth2 password flow issues 30-minute wristbands; a scanner checks every locked door
 - **Honest refusals:** 409 for taken usernames, 401 for missing/fake/expired wristbands — identical messages so thieves cannot enumerate users
+- **Ownership (multi-tenancy):** every product is branded at birth with its creator's id (foreign key to `users`); PUT/DELETE run a 403 coat-check; `GET /products/mine` shows only your own shelves
+- **Clean door schemas:** dedicated request capsules (`ProductCreate`, `ProductUpdate`, `UserRegister`) so clients can never see or fake internal fields like `owner_id`
 
 ## Endpoints
 
@@ -21,11 +23,12 @@ Products are created, read, updated, and deleted over HTTP, with automatic valid
 |--------|--------------------|--------------------------------|-----------|---------|---------------------------|
 | GET    | `/`                | Heartbeat check                | —         | 200     | —                         |
 | GET    | `/products`        | List all products (public menu)| —         | 200     | —                         |
+| GET    | `/products/mine`   | List only MY products (mirror) | 🔒 Bearer | 200     | 401 no band               |
 | POST   | `/users`           | Register a user                | —         | 200     | 409 taken · 422 bad shape |
 | POST   | `/login`           | Login, receive JWT wristband   | —         | 200     | 401 wrong credentials     |
 | POST   | `/products`        | Create a product               | 🔒 Bearer | 200     | 401 · 422 invalid body    |
-| PUT    | `/products/{id}`   | Update a product               | 🔒 Bearer | 200     | 401 · 404 unknown id      |
-| DELETE | `/products/{id}`   | Delete a product               | 🔒 Bearer | 200     | 401 · 404 unknown id      |
+| PUT    | `/products/{id}`   | Update a product               | 🔒 Bearer | 200     | 401 · 403 not yours · 404 |
+| DELETE | `/products/{id}`   | Delete a product               | 🔒 Bearer | 200     | 401 · 403 not yours · 404 |
 
 ## Security Model (the club)
 
@@ -34,6 +37,9 @@ Products are created, read, updated, and deleted over HTTP, with automatic valid
 - **Fingerprint vault:** password + random per-user salt, ground 100,000 rounds (PBKDF2-HMAC-SHA256); only `salt:grind` is stored.
 - **Wristbands (JWT):** HS256-signed tokens, 30-minute expiry; `Depends(get_current_user)` verifies the hologram at every locked door.
 - **Menu vs kitchen:** `GET /products` stays public — customers must browse to buy. All write-doors are staff-only.
+- **Birth stamp (IDOR defense):** `owner_id` is taken from the verified wristband, never from the request body — a client can only ever brand a product with its own id.
+- **Coat-check (403):** authentication answers *"who are you?"*; authorization answers *"is this yours?"*. Valid band + wrong shelf = 403 Forbidden.
+- **Private mirror:** `GET /products/mine` filters by `owner_id` inside the database — one `WHERE`, zero leakage.
 
 ## Tech Stack
 
@@ -53,7 +59,9 @@ Python 3.10 · FastAPI · Uvicorn · SQLModel (ORM) · SQLite · PyJWT · python
 
 POST /users   →  {"username": "sidd", "email": "s@x.com", "password": "hunter2"}  →  200
 POST /login   →  (form: sidd / hunter2)  →  {"access_token": "eyJ...", "token_type": "bearer"}
-POST /products  (header: Authorization: Bearer eyJ...)  →  {"message": "Product added!", "id": 1}
+POST /products  (header: Authorization: Bearer eyJ...)  →  {"message": "Product added!", "id": 1, "owner_id": 1}
+GET  /products/mine  (same band)  →  [{"id": 1, "name": "Keyboard", "price": 2000, "owner_id": 1}]
+DELETE /products/1  (ANOTHER user's band)  →  403 {"detail": "Not your product!"}
 
 ## War Stories — what this project taught me
 
@@ -65,7 +73,8 @@ POST /products  (header: Authorization: Bearer eyJ...)  →  {"message": "Produc
 - **The Ghost Table:** `create_all(engine)` ran *before* `class User` was defined, so the `users` table was never born; INSERT knocked on a ghost and the server died with a 500. *Lesson: Blueprints before construction, always.*
 - **The Paper-Form Door:** Switching `/login` to the OAuth2 form flow crashed the server with a RuntimeError demanding a reading machine I didn't own. The traceback printed its own cure: `pip install python-multipart`. *Lesson: Read the last line of the traceback first.*
 - **Two Guards, One Code:** `401 "Not authenticated"` is the rope (no wristband). `401 "Fake or expired wristband!"` is the hologram scanner (dead or forged band). Same status, different depths — defense in depth.
-
+- **The Commune Flaw:** Any valid wristband could delete any shelf — authentication answered "who are you?" but nobody asked "is this yours?". A foreign key (`owner_id`), a birth stamp from the token, and a two-line coat-check turned the commune into private apartments. *Lesson: authentication ≠ authorization; 401 and 403 are different sentences.*
+- **The Open Box:** The PUT door's Swagger form showed an `owner_id` field because the body schema was the full table blueprint. A two-field capsule (`ProductUpdate`) closed the box. *Lesson: the request schema is part of the security surface — show clients only what they are allowed to send.*
 
 
 ## Author
